@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>SecondBrain V2</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">SB</div>
+        <div>
+          <strong>SecondBrain</strong>
+          <span>Control plane · V2</span>
+        </div>
+      </div>
+
+      <nav class="primary-nav" aria-label="主导航">
+        <button class="nav-item active" data-view="dashboard">
+          <span class="nav-icon">⌂</span><span>控制台</span>
+        </button>
+        <button class="nav-item" data-view="library">
+          <span class="nav-icon">⌕</span><span>知识库</span>
+        </button>
+        <button class="nav-item" data-view="health">
+          <span class="nav-icon">◇</span><span>系统健康</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-heading">
+        <span>脑区</span>
+        <span id="brain-count">0</span>
+      </div>
+      <div class="brain-list" id="brain-list"></div>
+
+      <div class="sidebar-footer">
+        <span class="live-dot"></span>
+        <span>只读连接现有 brains/</span>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <button class="icon-button menu-button" id="menu-button" aria-label="打开导航" title="打开导航">☰</button>
+        <button class="search-trigger" id="search-trigger">
+          <span class="search-icon">⌕</span>
+          <span>搜索你的第二大脑</span>
+          <kbd>Ctrl K</kbd>
+        </button>
+        <button class="icon-button" id="vault-button" aria-label="选择知识库文件夹" title="选择知识库文件夹">▱</button>
+        <button class="icon-button" id="rebuild-button" aria-label="重新扫描" title="重新扫描">↻</button>
+      </header>
+
+      <section class="view active" id="view-dashboard">
+        <div class="page-heading">
+          <div>
+            <p class="eyebrow" id="today-label"></p>
+            <h1>知识控制台</h1>
+            <p>把注意力放在待处理、变化和可复用的知识上。</p>
+          </div>
+          <div class="system-state">
+            <span class="state-dot"></span>
+            <div><strong>索引已就绪</strong><span id="generated-at">正在读取</span></div>
+          </div>
+        </div>
+
+        <div class="metrics" id="metrics"></div>
+
+        <div class="dashboard-grid">
+          <section class="panel action-panel">
+            <div class="panel-heading">
+              <div><span class="section-kicker">FOCUS</span><h2>现在要处理</h2></div>
+              <span class="panel-count" id="action-count">0</span>
+            </div>
+            <div class="action-list" id="action-list"></div>
+          </section>
+
+          <section class="panel resurfacing-panel">
+            <div class="panel-heading">
+              <div><span class="section-kicker">RESURFACE</span><h2>旧知识浮现</h2></div>
+              <button class="text-button" id="open-resurfacing">打开</button>
+            </div>
+            <div id="resurfacing"></div>
+          </section>
+
+          <section class="panel recent-panel">
+            <div class="panel-heading">
+              <div><span class="section-kicker">CHANGELOG</span><h2>最近变化</h2></div>
+              <button class="text-button" data-go-view="library">查看全部</button>
+            </div>
+            <div class="recent-list" id="recent-list"></div>
+          </section>
+
+          <section class="panel activity-panel">
+            <div class="panel-heading">
+              <div><span class="section-kicker">DOMAINS</span><h2>脑区活跃度</h2></div>
+              <span class="quiet-label">页面 / 原始资料</span>
+            </div>
+            <div class="activity-list" id="activity-list"></div>
+          </section>
+        </div>
+      </section>
+
+      <section class="view" id="view-library">
+        <div class="page-heading compact-heading">
+          <div>
+            <p class="eyebrow">BROWSE & RETRIEVE</p>
+            <h1 id="library-title">知识库</h1>
+            <p id="library-description">选择脑区直接阅览，或按问题和关键词调用。</p>
+          </div>
+        </div>
+        <div class="library-toolbar">
+          <input id="library-search" type="search" placeholder="输入关键词，例如：学生焦虑、LLM、概率">
+          <select id="brain-filter" aria-label="筛选脑区"><option value="">全部脑区</option></select>
+        </div>
+        <div class="library-layout">
+          <aside class="category-nav" id="category-nav" aria-label="页面分类"></aside>
+          <div class="library-content">
+            <div class="result-summary" id="result-summary"></div>
+            <div class="library-results" id="library-results"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" id="view-health">
+        <div class="page-heading compact-heading">
+          <div><p class="eyebrow">MAINTENANCE</p><h1>系统健康</h1><p>问题只报告在这里，不会自动改动现有知识库。</p></div>
+        </div>
+        <div class="health-summary" id="health-summary"></div>
+        <div class="panel issue-panel">
+          <div class="panel-heading">
+            <div><span class="section-kicker">AUDIT</span><h2>需要关注</h2></div>
+          </div>
+          <div class="issue-list" id="issue-list"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="dialog-backdrop" id="search-dialog" role="dialog" aria-modal="true" aria-label="全局搜索">
+    <div class="command-dialog">
+      <div class="command-input">
+        <span>⌕</span>
+        <input id="command-search" type="search" placeholder="搜索页面、概念和记录" autocomplete="off">
+        <kbd>Esc</kbd>
+      </div>
+      <div class="command-results" id="command-results"></div>
+    </div>
+  </div>
+
+  <div class="reader-backdrop" id="reader-backdrop"></div>
+  <aside class="reader" id="reader" aria-label="页面阅读器">
+    <header class="reader-header">
+      <div><span class="brain-dot" id="reader-dot"></span><span id="reader-brain"></span></div>
+      <button class="icon-button" id="reader-close" aria-label="关闭阅读器" title="关闭">×</button>
+    </header>
+    <div class="reader-scroll">
+      <div class="reader-meta" id="reader-meta"></div>
+      <article class="reader-content" id="reader-content"></article>
+      <section class="connections">
+        <h3>连接</h3>
+        <div id="reader-connections"></div>
+      </section>
+    </div>
+  </aside>
+
+  <div class="toast" id="toast"></div>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

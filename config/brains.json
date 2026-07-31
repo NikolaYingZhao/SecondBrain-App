@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "brains": [
+    { "id": "inbox-brain", "name": "收件箱", "short": "收件箱", "status": "system", "color": "#6b7280", "domains": ["捕获", "路由", "草稿"] },
+    { "id": "XDF-brain", "name": "高中数学教学脑", "short": "教学", "status": "active", "color": "#e34b4b", "domains": ["教学", "学生", "高考", "教研"] },
+    { "id": "life-brain", "name": "生活脑", "short": "生活", "status": "active", "color": "#2f9d68", "domains": ["日常", "健康", "任务", "习惯"] },
+    { "id": "machine-brain", "name": "机器脑", "short": "机器", "status": "active", "color": "#4385be", "domains": ["环境", "配置", "排障", "工作流"] },
+    { "id": "affective-brain", "name": "感性脑", "short": "感性", "status": "active", "color": "#d26b3f", "domains": ["情绪", "关系", "价值观", "自我觉察"] },
+    { "id": "psychology-brain", "name": "心理脑", "short": "心理", "status": "active", "color": "#258e87", "domains": ["心理学", "认知", "心智模型"] },
+    { "id": "media-brain", "name": "信息源脑", "short": "信息源", "status": "active", "color": "#367fc1", "domains": ["视频", "文章", "摘要", "信息源"] },
+    { "id": "cs-brain", "name": "计算机脑", "short": "计算机", "status": "active", "color": "#7259b7", "domains": ["编程", "AI", "系统", "工具"] },
+    { "id": "cat-brain", "name": "猫脑", "short": "猫咪", "status": "active", "color": "#c28a28", "domains": ["健康", "行为", "用品", "成长"] },
+    { "id": "philosophy-brain", "name": "哲学脑", "short": "哲学", "status": "maintenance", "color": "#8c5aa8", "domains": ["哲学", "思想家", "概念", "论证"] },
+    { "id": "physics-brain", "name": "物理脑", "short": "物理", "status": "maintenance", "color": "#477483", "domains": ["经典物理", "现代物理", "实验"] },
+    { "id": "relax-brain", "name": "休闲脑", "short": "休闲", "status": "maintenance", "color": "#ad5b80", "domains": ["游戏", "动漫", "特摄", "体验"] },
+    { "id": "applied-stat-brain", "name": "应用统计考研脑", "short": "应用统计", "status": "seed", "color": "#55a868", "domains": ["概率论", "统计", "考研"] },
+    { "id": "math-brain", "name": "数学脑", "short": "数学", "status": "seed", "color": "#b65d4d", "domains": ["分析", "代数", "几何", "数论"] },
+    { "id": "finance-brain", "name": "金融脑", "short": "金融", "status": "seed", "color": "#4b9b8c", "domains": ["市场", "资产", "框架", "投资论点"] }
+  ],
+  "aliases": {
+    "game-brain": "relax-brain",
+    "游戏脑": "relax-brain",
+    "心理学脑": "psychology-brain",
+    "计算机脑": "cs-brain",
+    "教学脑": "XDF-brain"
+  }
+}
