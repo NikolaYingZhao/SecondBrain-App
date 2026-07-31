@@ -1,7 +1,7 @@
 {
-  "name": "secondbrain-v2",
-  "version": "0.1.0",
-  "description": "A private desktop reader and search interface for a Markdown-based second brain.",
+  "name": "secondbrain",
+  "version": "1.0.0",
+  "description": "A private, local-first desktop home for a personal knowledge base.",
   "author": "Nikola Ying Zhao",
   "private": true,
   "type": "module",
@@ -27,6 +27,8 @@
     "appId": "com.secondbrain.desktop",
     "productName": "SecondBrain",
     "asar": true,
+    "electronDist": "node_modules/electron/dist",
+    "artifactName": "SecondBrain-Setup-${version}.${ext}",
     "directories": {
       "output": "release"
     },
@@ -37,15 +39,24 @@
       "package.json"
     ],
     "win": {
+      "icon": "build/icon.png",
+      "requestedExecutionLevel": "asInvoker",
       "target": [
-        "nsis"
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
       ]
     },
     "nsis": {
       "oneClick": false,
+      "perMachine": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
+      "createStartMenuShortcut": true,
+      "shortcutName": "SecondBrain",
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false
     }
   }
 }

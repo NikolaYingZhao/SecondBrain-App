@@ -5,6 +5,7 @@ import path from "node:path";
 import test from "node:test";
 import { renderMarkdown } from "../src/markdown.mjs";
 import { KnowledgeService, normalizeVaultPath, validateVaultPath } from "../src/service.mjs";
+import { buildVaultCandidates, findVaultPath } from "../src/vault-discovery.mjs";
 import { compileKnowledge, extractWikilinks, parseFrontmatter, resolveLink, searchKnowledge } from "../src/wiki.mjs";
 
 test("parses frontmatter and wikilinks", () => {
@@ -75,6 +76,30 @@ test("uses an external brains directory as the single data source", () => {
   assert.equal(service.info().vaultPath, vaultRoot);
   assert.equal(service.dashboard().summary.pages, 1);
   assert.equal(service.search("不在应用代码仓库")[0].title, "共享数据");
+});
+
+test("automatically discovers a SecondBrain folder without asking for a technical path", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "secondbrain-discovery-"));
+  const documentsPath = path.join(root, "Documents");
+  const vaultRoot = path.join(documentsPath, "SecondBrain", "brains");
+  fs.mkdirSync(path.join(vaultRoot, "cs-brain"), { recursive: true });
+
+  const candidates = buildVaultCandidates({
+    env: {},
+    v2Root: path.join(root, "application"),
+    documentsPath,
+    executablePath: path.join(root, "installed", "SecondBrain.exe"),
+    platform: "linux"
+  });
+
+  assert.ok(candidates.includes(vaultRoot));
+  assert.equal(findVaultPath({
+    env: {},
+    v2Root: path.join(root, "application"),
+    documentsPath,
+    executablePath: path.join(root, "installed", "SecondBrain.exe"),
+    platform: "linux"
+  }), vaultRoot);
 });
 
 test("sanitizes rendered markdown while preserving internal wiki navigation", () => {

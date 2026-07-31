@@ -1,9 +1,17 @@
-# SecondBrain Desktop V2
+# SecondBrain 桌面版
 
-SecondBrain Desktop 是现有知识库的桌面阅览与检索层。Markdown Vault 是唯一数据源；
-应用读取用户选择的 `brains/` 文件夹，不修改任何 schema、raw、wiki、index 或 log。
+SecondBrain 是本地优先的个人知识桌面应用。安装后像普通软件一样从桌面或开始菜单打开，
+应用会自动找到知识内容，并在内容变化后自动更新。日常使用不需要终端、npm、端口或手动扫描。
 
-## 桌面启动
+## 普通使用
+
+运行 `release/SecondBrain-Setup-1.0.0.exe` 完成安装。安装程序会创建开始菜单入口，
+并可创建桌面快捷方式。以后双击 `SecondBrain` 即可。
+
+通常应用会自动找到 `Documents/SecondBrain` 或与程序相邻的知识库。只有无法自动识别时，
+才会显示首次使用页面，让用户选择一次资料位置。路径、刷新等低频操作统一收在“设置”中。
+
+## 开发者运行
 
 ```powershell
 cd app
@@ -11,11 +19,8 @@ npm.cmd install
 npm.cmd start
 ```
 
-应用启动后会直接打开桌面窗口，不需要手动启动网关，也不会打开浏览器。开发仓库中的
-`../brains/` 会被自动识别；安装到其他位置后，首次启动选择一次 `brains` 文件夹即可。
-所选路径保存在 Electron 的用户配置目录，不会写入知识库。
-
-顶部的文件夹按钮可以随时切换 Vault，刷新按钮会重新扫描当前 Vault。
+应用读取知识库但不修改任何 `schema`、`raw`、`wiki`、`index` 或 `log`。用户选择和窗口设置
+保存在应用自己的配置目录，不会写入知识库。
 
 ## 打包
 
@@ -31,7 +36,7 @@ npm.cmd run pack
 npm.cmd run dist
 ```
 
-产物位于 `release/`。安装版会创建开始菜单入口，并可选择创建桌面快捷方式。
+产物位于 `release/`。
 
 ## 单一数据源
 
@@ -40,7 +45,7 @@ npm.cmd run dist
 ```text
 同一个 brains/ Markdown Vault
         ↑             ↑
-  master 方案     V2 桌面方案
+  知识维护流程     SecondBrain 桌面版
 ```
 
 `npm test` 会运行数据分支保护。只要当前分支不是 `master`，以下情况会使测试失败：
@@ -48,8 +53,8 @@ npm.cmd run dist
 - `master...HEAD` 中存在已提交的 `brains/**` 差异；
 - 暂存区中存在准备提交到架构分支的 `brains/**` 文件。
 
-工作区中尚未暂存的笔记不会被改动。知识数据应先在 `master` 形成唯一历史；应用分支只读取
-该物理 Vault。待桌面方案验证稳定后，可以再把 Vault 无损拆成独立私有仓库。
+工作区中尚未暂存的笔记不会被改动。知识数据在 `master` 形成唯一历史，桌面应用只读取
+同一份物理知识库。
 
 ## 可选网页调试
 

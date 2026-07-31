@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
-  <title>SecondBrain V2</title>
+  <title>SecondBrain</title>
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
@@ -14,19 +14,19 @@
         <div class="brand-mark" aria-hidden="true">SB</div>
         <div>
           <strong>SecondBrain</strong>
-          <span>Control plane · V2</span>
+          <span>你的知识空间</span>
         </div>
       </div>
 
       <nav class="primary-nav" aria-label="主导航">
         <button class="nav-item active" data-view="dashboard">
-          <span class="nav-icon">⌂</span><span>控制台</span>
+          <span class="nav-icon">⌂</span><span>首页</span>
         </button>
         <button class="nav-item" data-view="library">
-          <span class="nav-icon">⌕</span><span>知识库</span>
+          <span class="nav-icon">⌕</span><span>全部知识</span>
         </button>
         <button class="nav-item" data-view="health">
-          <span class="nav-icon">◇</span><span>系统健康</span>
+          <span class="nav-icon">◇</span><span>整理建议</span>
         </button>
       </nav>
 
@@ -38,7 +38,7 @@
 
       <div class="sidebar-footer">
         <span class="live-dot"></span>
-        <span>只读连接现有 brains/</span>
+        <span>内容保存在你的电脑上</span>
       </div>
     </aside>
 
@@ -50,20 +50,19 @@
           <span>搜索你的第二大脑</span>
           <kbd>Ctrl K</kbd>
         </button>
-        <button class="icon-button" id="vault-button" aria-label="选择知识库文件夹" title="选择知识库文件夹">▱</button>
-        <button class="icon-button" id="rebuild-button" aria-label="重新扫描" title="重新扫描">↻</button>
+        <button class="icon-button" id="settings-button" aria-label="打开设置" title="设置">⚙</button>
       </header>
 
       <section class="view active" id="view-dashboard">
         <div class="page-heading">
           <div>
             <p class="eyebrow" id="today-label"></p>
-            <h1>知识控制台</h1>
-            <p>把注意力放在待处理、变化和可复用的知识上。</p>
+            <h1>今天的 SecondBrain</h1>
+            <p>继续整理、查找和重新发现你的知识。</p>
           </div>
           <div class="system-state">
             <span class="state-dot"></span>
-            <div><strong>索引已就绪</strong><span id="generated-at">正在读取</span></div>
+            <div><strong>内容已就绪</strong><span id="generated-at">正在读取</span></div>
           </div>
         </div>
 
@@ -127,7 +126,7 @@
 
       <section class="view" id="view-health">
         <div class="page-heading compact-heading">
-          <div><p class="eyebrow">MAINTENANCE</p><h1>系统健康</h1><p>问题只报告在这里，不会自动改动现有知识库。</p></div>
+          <div><p class="eyebrow">KEEP IT USEFUL</p><h1>整理建议</h1><p>帮助你发现缺失的连接和可以继续完善的页面，不会自动修改内容。</p></div>
         </div>
         <div class="health-summary" id="health-summary"></div>
         <div class="panel issue-panel">
@@ -166,6 +165,48 @@
       </section>
     </div>
   </aside>
+
+  <div class="setup-screen" id="setup-screen" hidden>
+    <div class="setup-card">
+      <div class="setup-mark" aria-hidden="true">SB</div>
+      <p class="eyebrow">欢迎使用</p>
+      <h1>打开你的 SecondBrain</h1>
+      <p id="setup-message">通常我们可以自动找到你的内容。如果内容放在其他位置，选择一次即可，以后会直接打开。</p>
+      <div class="setup-actions">
+        <button class="primary-button" id="auto-find-button">自动查找</button>
+        <button class="secondary-button" id="choose-folder-button">选择资料位置</button>
+      </div>
+      <small>SecondBrain 只读取本机内容，不会移动或上传你的文件。</small>
+    </div>
+  </div>
+
+  <div class="dialog-backdrop" id="settings-dialog" role="dialog" aria-modal="true" aria-label="设置">
+    <div class="settings-card">
+      <header>
+        <div>
+          <p class="eyebrow">SECOND BRAIN</p>
+          <h2>设置</h2>
+        </div>
+        <button class="icon-button" id="settings-close" aria-label="关闭设置" title="关闭">×</button>
+      </header>
+      <div class="settings-status">
+        <span class="state-dot"></span>
+        <div><strong>资料已连接</strong><span id="settings-summary">内容保存在你的电脑上</span></div>
+      </div>
+      <div class="settings-actions">
+        <button class="settings-row" id="reveal-vault-button">
+          <span><strong>打开资料位置</strong><small>在资源管理器中查看你的 SecondBrain</small></span><b>→</b>
+        </button>
+        <button class="settings-row" id="refresh-button">
+          <span><strong>立即更新内容</strong><small>日常使用会自动更新，无需手动操作</small></span><b>↻</b>
+        </button>
+        <button class="settings-row" id="change-vault-button">
+          <span><strong>更换资料位置</strong><small>仅在移动 SecondBrain 后使用</small></span><b>→</b>
+        </button>
+      </div>
+      <p class="settings-note">应用只读取知识库；原始资料与笔记始终由你掌控。</p>
+    </div>
+  </div>
 
   <div class="toast" id="toast"></div>
   <script type="module" src="./app.js"></script>

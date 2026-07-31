@@ -5,7 +5,8 @@ const state = {
   libraryQuery: "",
   libraryBrain: "",
   libraryCategory: "",
-  libraryPages: []
+  libraryPages: [],
+  vault: null
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -34,6 +35,71 @@ function showToast(message) {
   toast.textContent = message;
   toast.classList.add("show");
   setTimeout(() => toast.classList.remove("show"), 2200);
+}
+
+function renderApp(dashboard) {
+  const previousBrain = $("#brain-filter")?.value || state.libraryBrain;
+  const previousQuery = $("#library-search")?.value || state.libraryQuery;
+  state.dashboard = dashboard;
+  renderSidebar();
+  if ([...$("#brain-filter").options].some((option) => option.value === previousBrain)) {
+    $("#brain-filter").value = previousBrain;
+  }
+  $("#library-search").value = previousQuery;
+  renderDashboard();
+  renderHealth();
+  runLibrarySearch();
+}
+
+function showSetup(message) {
+  if (message) $("#setup-message").textContent = message;
+  $("#setup-screen").hidden = false;
+}
+
+function hideSetup() {
+  $("#setup-screen").hidden = true;
+}
+
+function openSettings() {
+  if (!state.dashboard) return;
+  $("#settings-summary").textContent = `${state.dashboard.summary.pages} 篇内容已连接，日常会自动更新`;
+  $("#settings-dialog").classList.add("open");
+}
+
+function closeSettings() {
+  $("#settings-dialog").classList.remove("open");
+}
+
+async function connectVault(action) {
+  const buttons = $$("#setup-screen button, #settings-dialog button");
+  buttons.forEach((button) => { button.disabled = true; });
+  try {
+    const result = await action();
+    if (!result?.dashboard) {
+      if (!result?.canceled) {
+        if (state.dashboard) showToast("资料位置没有更改");
+        else showSetup("还没有找到可用内容。你可以选择 SecondBrain 主文件夹，我们会记住它。");
+      }
+      return false;
+    }
+    state.libraryBrain = "";
+    state.libraryCategory = "";
+    state.libraryQuery = "";
+    $("#brain-filter").value = "";
+    $("#library-search").value = "";
+    state.vault = result;
+    hideSetup();
+    closeSettings();
+    renderApp(result.dashboard);
+    showToast("SecondBrain 已准备好");
+    return true;
+  } catch (error) {
+    console.error(error);
+    showSetup("暂时无法读取这里的内容。请选择 SecondBrain 主文件夹后重试。");
+    return false;
+  } finally {
+    buttons.forEach((button) => { button.disabled = false; });
+  }
 }
 
 async function getJson(url, options) {
@@ -82,11 +148,11 @@ function renderDashboard() {
   $("#today-label").textContent = new Intl.DateTimeFormat("zh-CN", {
     weekday: "long", year: "numeric", month: "long", day: "numeric"
   }).format(new Date());
-  $("#generated-at").textContent = `扫描于 ${formatDate(summary.generatedAt, true)}`;
+  $("#generated-at").textContent = `更新于 ${formatDate(summary.generatedAt, true)}`;
   $("#metrics").innerHTML = [
     metric("待处理捕获", summary.captures, summary.captures ? "amber" : "green", "来自收件箱"),
-    metric("待路由", summary.pendingRoutes, summary.pendingRoutes ? "cyan" : "green", "来自信息源脑"),
-    metric("待补连接", summary.knowledgeGaps, summary.knowledgeGaps ? "amber" : "green", "真实知识缺口"),
+    metric("待归档", summary.pendingRoutes, summary.pendingRoutes ? "cyan" : "green", "来自信息源"),
+    metric("可完善", summary.knowledgeGaps, summary.knowledgeGaps ? "amber" : "green", "尚未连接的概念"),
     metric("知识页面", summary.pages, "neutral", `${summary.links} 条有效连接`)
   ].join("");
 
@@ -154,10 +220,10 @@ function renderDashboard() {
 function renderHealth() {
   const summary = state.dashboard.summary;
   $("#health-summary").innerHTML = `
-    <div><strong>${summary.errors}</strong><span>应用错误</span></div>
-    <div><strong>${summary.knowledgeGaps}</strong><span>待补连接</span></div>
-    <div><strong>${summary.orphans}</strong><span>无入链页面</span></div>
-    <div><strong>${summary.metadataIssues}</strong><span>元数据不完整</span></div>`;
+    <div><strong>${summary.errors}</strong><span>需要修复</span></div>
+    <div><strong>${summary.knowledgeGaps}</strong><span>可补充连接</span></div>
+    <div><strong>${summary.orphans}</strong><span>较少被引用</span></div>
+    <div><strong>${summary.metadataIssues}</strong><span>信息可完善</span></div>`;
   const issues = state.dashboard.issuePreview;
   $("#issue-list").innerHTML = issues.length ? issues.map((issue) => `
     <div class="issue-row">
@@ -376,31 +442,32 @@ function bindEvents() {
     clearTimeout(state.searchTimer);
     state.searchTimer = setTimeout(commandSearch, 140);
   });
-  $("#rebuild-button").addEventListener("click", async () => {
-    const button = $("#rebuild-button");
-    button.classList.add("spinning");
-    state.dashboard = await getJson("/api/rebuild", { method: "POST" });
-    renderDashboard();
-    renderSidebar();
-    renderHealth();
-    button.classList.remove("spinning");
-    showToast("已重新扫描现有知识库");
+  $("#settings-button").addEventListener("click", openSettings);
+  $("#settings-close").addEventListener("click", closeSettings);
+  $("#settings-dialog").addEventListener("click", (event) => {
+    if (event.target === $("#settings-dialog")) closeSettings();
   });
-  $("#vault-button").addEventListener("click", async () => {
-    if (!window.secondBrain) {
-      showToast("网页模式使用项目内的 brains/ 文件夹");
-      return;
+  $("#auto-find-button").addEventListener("click", () => {
+    if (window.secondBrain) connectVault(() => window.secondBrain.autoDetectVault());
+  });
+  $("#choose-folder-button").addEventListener("click", () => {
+    if (window.secondBrain) connectVault(() => window.secondBrain.chooseVault());
+  });
+  $("#change-vault-button").addEventListener("click", () => {
+    if (window.secondBrain) connectVault(() => window.secondBrain.chooseVault());
+  });
+  $("#reveal-vault-button").addEventListener("click", async () => {
+    if (window.secondBrain) await window.secondBrain.revealVault();
+  });
+  $("#refresh-button").addEventListener("click", async () => {
+    try {
+      renderApp(await getJson("/api/rebuild", { method: "POST" }));
+      closeSettings();
+      showToast("内容已更新");
+    } catch (error) {
+      console.error(error);
+      showToast("暂时无法更新，请稍后重试");
     }
-    const result = await window.secondBrain.chooseVault();
-    if (!result.dashboard) return;
-    state.dashboard = result.dashboard;
-    state.libraryCategory = "";
-    renderDashboard();
-    renderSidebar();
-    renderHealth();
-    runLibrarySearch();
-    $("#vault-button").title = result.vaultPath;
-    showToast("已切换知识库数据源");
   });
   document.addEventListener("keydown", (event) => {
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
@@ -410,24 +477,29 @@ function bindEvents() {
     if (event.key === "Escape") {
       closeSearch();
       closeReader();
+      closeSettings();
     }
   });
 }
 
 async function init() {
+  bindEvents();
   if (window.secondBrain) {
     const vault = await window.secondBrain.vaultInfo();
-    $("#vault-button").title = vault.vaultPath || "选择知识库文件夹";
+    state.vault = vault;
+    window.secondBrain.onUpdated((dashboard) => {
+      renderApp(dashboard);
+      showToast("内容已自动更新");
+    });
+    if (!vault.configured) {
+      showSetup();
+      return;
+    }
   }
-  state.dashboard = await getJson("/api/dashboard");
-  renderSidebar();
-  renderDashboard();
-  renderHealth();
-  bindEvents();
-  runLibrarySearch();
+  renderApp(await getJson("/api/dashboard"));
 }
 
 init().catch((error) => {
   console.error(error);
-  document.body.innerHTML = `<main class="fatal"><h1>V2 启动失败</h1><p>${escapeHtml(error.message)}</p></main>`;
+  showSetup("暂时无法打开内容。请选择 SecondBrain 主文件夹后重试。");
 });
