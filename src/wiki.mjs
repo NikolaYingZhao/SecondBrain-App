@@ -46,6 +46,32 @@ function firstHeading(text, fallback) {
   return text.match(/^#\s+(.+)$/m)?.[1]?.trim() || fallback;
 }
 
+function cleanQuote(value) {
+  return value
+    .replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, "$2$1")
+    .replace(/\*\*|`/g, "")
+    .replace(/!\[[^\]]*]\([^)]*\)/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function extractQuote(body) {
+  const boldRe = /\*\*([^*\n]{6,120})\*\*/g;
+  let match;
+  while ((match = boldRe.exec(body)) !== null) {
+    const candidate = cleanQuote(match[1]);
+    if (/^[^，。；：、！？!?]/.test(candidate)) return candidate;
+  }
+  for (const line of body.split(/\r?\n/)) {
+    const text = line.replace(/^#{1,6}\s+/, "").trim();
+    if (!text || /^(>|\||[-*+] |```|\[!)/.test(text)) continue;
+    const sentence = text.match(/[^，。；：、！？!?，*#`>|\-]{8,100}[。！？!?]/);
+    if (sentence) return cleanQuote(sentence[0]);
+    break;
+  }
+  return null;
+}
+
 function cleanSnippet(text, length = 180) {
   return text
     .replace(/```[\s\S]*?```/g, " ")
@@ -258,6 +284,23 @@ export function compileKnowledge({
     });
   }
 
+  const quotes = [];
+  for (const page of pages.values()) {
+    const rawQuote = (page.metadata.quote || "").trim();
+    const quote = rawQuote || (page.type === "synthesis" ? extractQuote(page.body) : null);
+    if (!quote) continue;
+    quotes.push({
+      id: page.id,
+      quote,
+      title: page.title,
+      brain: page.brain,
+      brainName: page.brainName,
+      color: page.color,
+      updated: page.updated
+    });
+  }
+  quotes.sort((a, b) => b.updated.localeCompare(a.updated));
+
   const incoming = new Map();
   let linkCount = 0;
   for (const page of pages.values()) {
@@ -349,6 +392,7 @@ export function compileKnowledge({
     brains: brainStats.length,
     pages: pages.size,
     links: linkCount,
+    quotes: quotes.length,
     captures: captureQueue.length,
     pendingRoutes: pendingRoutes.length,
     errors: issues.filter((issue) => issue.severity === "error").length,
@@ -363,6 +407,7 @@ export function compileKnowledge({
     registry: { brains: brainStats, aliases: registry.aliases },
     queues: { captures: captureQueue, routes: pendingRoutes },
     recent,
+    quotes,
     resurfacing: resurfacing ? {
       id: resurfacing.id,
       title: resurfacing.title,

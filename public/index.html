@@ -66,6 +66,18 @@
           </div>
         </div>
 
+        <section class="quote-banner" id="quote-banner">
+          <span class="quote-kicker" id="quote-kicker">今日金句</span>
+          <blockquote class="quote-text" id="quote-text"></blockquote>
+          <div class="quote-footer">
+            <span class="quote-source" id="quote-source"></span>
+            <div class="quote-actions">
+              <button class="quote-shuffle" id="quote-shuffle" title="换一句">换一句</button>
+              <button class="quote-open" id="quote-open">阅读这篇 →</button>
+            </div>
+          </div>
+        </section>
+
         <div class="metrics" id="metrics"></div>
 
         <div class="dashboard-grid">
@@ -163,8 +175,36 @@
         <h3>连接</h3>
         <div id="reader-connections"></div>
       </section>
+      <div class="reader-note">
+        <textarea id="reader-note-input" rows="3" placeholder="读完有什么想法？随手记一笔，会存入收件箱供日后整理。"></textarea>
+        <div class="reader-note-bar">
+          <span class="quiet-label">想法将保存到 收件箱 → raw/fragments</span>
+          <button class="primary-button" id="reader-note-save" disabled>记一笔</button>
+        </div>
+      </div>
     </div>
   </aside>
+
+  <button class="selection-bubble" id="selection-bubble" hidden>记一笔</button>
+
+  <div class="dialog-backdrop" id="annotation-dialog" role="dialog" aria-modal="true" aria-label="文本批注">
+    <div class="annotation-card">
+      <header>
+        <div>
+          <p class="eyebrow">READING NOTE</p>
+          <h2>给这段文字记一笔</h2>
+        </div>
+        <button class="icon-button" id="annotation-close" aria-label="关闭" title="关闭">×</button>
+      </header>
+      <blockquote class="annotation-selection" id="annotation-selection"></blockquote>
+      <textarea id="annotation-text" rows="4" placeholder="写下此刻的想法…（存入收件箱）"></textarea>
+      <footer>
+        <span class="quiet-label">保存后由 LLM 定期整理路由</span>
+        <button class="secondary-button" id="annotation-cancel">取消</button>
+        <button class="primary-button" id="annotation-save">保存</button>
+      </footer>
+    </div>
+  </div>
 
   <div class="setup-screen" id="setup-screen" hidden>
     <div class="setup-card">

@@ -3,11 +3,13 @@ import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { renderMarkdown } from "./markdown.mjs";
+import { writeReadingNote } from "./service.mjs";
 import { compileKnowledge, searchKnowledge } from "./wiki.mjs";
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const v2Root = path.resolve(currentDir, "..");
 const projectRoot = path.resolve(v2Root, "..");
+const brainsRoot = path.join(projectRoot, "brains");
 const publicRoot = path.join(v2Root, "public");
 const port = Number(process.env.SECONDBRAIN_V2_PORT || 4173);
 let index = compileKnowledge({ projectRoot, v2Root });
@@ -24,6 +26,16 @@ function sendJson(response, value, status = 200) {
   response.end(JSON.stringify(value));
 }
 
+function readBody(request) {
+  return new Promise((resolve) => {
+    let body = "";
+    request.on("data", (chunk) => { body += chunk; });
+    request.on("end", () => {
+      try { resolve(JSON.parse(body || "{}")); } catch { resolve({}); }
+    });
+  });
+}
+
 function dashboardPayload() {
   const { pages, issues, ...dashboard } = index;
   return {
@@ -32,7 +44,7 @@ function dashboardPayload() {
   };
 }
 
-const server = http.createServer((request, response) => {
+const server = http.createServer(async (request, response) => {
   const url = new URL(request.url, `http://${request.headers.host || "localhost"}`);
 
   if (url.pathname === "/favicon.ico") {
@@ -60,6 +72,16 @@ const server = http.createServer((request, response) => {
   if (url.pathname === "/api/rebuild" && request.method === "POST") {
     index = compileKnowledge({ projectRoot, v2Root });
     return sendJson(response, dashboardPayload());
+  }
+  if (url.pathname === "/api/note" && request.method === "POST") {
+    const payload = await readBody(request);
+    const page = index.pages.find((item) => item.id === payload.pageId);
+    try {
+      const result = writeReadingNote({ brainsRoot, page, text: payload.text, selection: payload.selection });
+      return sendJson(response, result);
+    } catch (error) {
+      return sendJson(response, { error: error.message }, 400);
+    }
   }
 
   const requested = url.pathname === "/" ? "index.html" : url.pathname.slice(1);

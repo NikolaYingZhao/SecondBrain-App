@@ -22,6 +22,11 @@ npm.cmd start
 应用读取知识库但不修改任何 `schema`、`raw`、`wiki`、`index` 或 `log`。用户选择和窗口设置
 保存在应用自己的配置目录，不会写入知识库。
 
+唯一的例外是**阅读想法记录**：在阅读器中选中文字或页尾感想框写的想法，会作为
+`reading-note` 碎片写入 `brains/inbox-brain/raw/fragments/`——这是整个知识体系设计的
+"零摩擦捕获入口"，想法随后由 LLM 定期处理、路由到各脑。代码层用路径白名单保证
+只能写入收件箱碎片目录，其余一切仍然只读。
+
 ## 打包
 
 生成可直接运行的 Windows 目录：
@@ -75,7 +80,7 @@ app/
 ├── src/preload.cjs          # 安全 IPC 桥接
 ├── src/service.mjs          # 桌面数据服务
 ├── src/markdown.mjs         # Markdown 与 wikilink 渲染
-├── src/wiki.mjs             # 只读索引、链接解析、审计、搜索
+├── src/wiki.mjs             # 索引、链接解析、审计、搜索、金句池
 ├── src/server.mjs           # 可选网页调试服务
 ├── scripts/                 # 分支数据保护
 ├── public/                  # 桌面界面

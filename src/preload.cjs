@@ -4,6 +4,7 @@ contextBridge.exposeInMainWorld("secondBrain", {
   dashboard: () => ipcRenderer.invoke("knowledge:dashboard"),
   search: (query) => ipcRenderer.invoke("knowledge:search", query),
   page: (id) => ipcRenderer.invoke("knowledge:page", id),
+  addNote: (payload) => ipcRenderer.invoke("knowledge:add-note", payload),
   pages: (brain) => ipcRenderer.invoke("knowledge:pages", brain),
   issues: () => ipcRenderer.invoke("knowledge:issues"),
   rebuild: () => ipcRenderer.invoke("knowledge:rebuild"),

@@ -24,6 +24,44 @@ export function validateVaultPath(candidate) {
   return { valid: true, vaultPath };
 }
 
+function timestampParts(now) {
+  const pad = (value) => String(value).padStart(2, "0");
+  return {
+    date: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`,
+    clock: `${pad(now.getHours())}:${pad(now.getMinutes())}`,
+    stamp: `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`
+  };
+}
+
+export function writeReadingNote({ brainsRoot, page, text, selection = "", now = new Date() }) {
+  const note = String(text || "").trim();
+  if (!note) throw new Error("想法内容为空。");
+  if (!page?.id) throw new Error("缺少目标页面。");
+  const quoted = String(selection || "").trim().replace(/\s+/g, " ").slice(0, 200);
+
+  const fragmentsRoot = path.resolve(path.join(brainsRoot, "inbox-brain", "raw", "fragments"));
+  const { date, clock, stamp } = timestampParts(now);
+  const target = path.join(fragmentsRoot, `想法-${stamp}.md`);
+  if (!target.startsWith(fragmentsRoot + path.sep)) throw new Error("写入路径越界。");
+
+  fs.mkdirSync(fragmentsRoot, { recursive: true });
+  const content = [
+    "---",
+    "type: reading-note",
+    `created: ${date}`,
+    `source: "[[${page.path}]]"`,
+    "---",
+    `# 阅读想法 · 《${page.title}》 ${clock}`,
+    "",
+    ...(quoted ? ["原文：", `> ${quoted}`, ""] : []),
+    "想法：",
+    note,
+    ""
+  ].join("\n");
+  fs.writeFileSync(target, content, "utf8");
+  return { saved: true, file: path.relative(brainsRoot, target), path: target };
+}
+
 export class KnowledgeService {
   constructor({ v2Root, vaultPath }) {
     this.v2Root = v2Root;
@@ -70,6 +108,12 @@ export class KnowledgeService {
     const page = this.requireIndex().pages.find((item) => item.id === id);
     if (!page) throw new Error("没有找到这篇笔记。");
     return { ...page, html: renderMarkdown(page) };
+  }
+
+  addReadingNote(payload = {}) {
+    const page = this.requireIndex().pages.find((item) => item.id === payload.pageId);
+    if (!page) throw new Error("没有找到这篇笔记。");
+    return writeReadingNote({ brainsRoot: this.vaultPath, page, text: payload.text, selection: payload.selection });
   }
 
   pages(brain = "") {

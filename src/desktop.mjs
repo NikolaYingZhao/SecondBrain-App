@@ -111,6 +111,7 @@ function registerIpc() {
   ipcMain.handle("knowledge:dashboard", () => service.dashboard());
   ipcMain.handle("knowledge:search", (_event, query) => service.search(query));
   ipcMain.handle("knowledge:page", (_event, id) => service.page(id));
+  ipcMain.handle("knowledge:add-note", (_event, payload) => service.addReadingNote(payload || {}));
   ipcMain.handle("knowledge:pages", (_event, brain) => service.pages(brain));
   ipcMain.handle("knowledge:issues", () => service.issues());
   ipcMain.handle("knowledge:rebuild", () => service.rebuild());
@@ -151,12 +152,69 @@ function createWindow() {
   if (process.env.SECOND_BRAIN_SCREENSHOT) {
     mainWindow.webContents.once("did-finish-load", () => {
       setTimeout(async () => {
+        if (process.env.SECOND_BRAIN_SCREENSHOT_TWO_SHOTS) {
+          const first = service.index?.summary.generatedAt || "no-index";
+          fs.writeFileSync(`${process.env.SECOND_BRAIN_SCREENSHOT}.first.txt`, first, "utf8");
+          const touch = process.env.SECOND_BRAIN_SCREENSHOT_TOUCH;
+          if (touch && fs.existsSync(touch)) {
+            const stamp = new Date();
+            fs.utimesSync(touch, stamp, stamp);
+          }
+          await new Promise((resolve) => setTimeout(resolve, 2600));
+          const second = service.index?.summary.generatedAt || "no-index";
+          fs.writeFileSync(`${process.env.SECOND_BRAIN_SCREENSHOT}.second.txt`, second, "utf8");
+          const image = await mainWindow.webContents.capturePage();
+          fs.writeFileSync(process.env.SECOND_BRAIN_SCREENSHOT, image.toPNG());
+          app.quit();
+          return;
+        }
         if (process.env.SECOND_BRAIN_SCREENSHOT_VIEW === "settings") {
           await mainWindow.webContents.executeJavaScript(`
             document.querySelector('#settings-dialog')?.classList.add('open');
           `);
           await new Promise((resolve) => setTimeout(resolve, 500));
-        } else if (process.env.SECOND_BRAIN_SCREENSHOT_VIEW === "reader") {
+        } else if (process.env.SECOND_BRAIN_SCREENSHOT_VIEW === "library") {
+          await mainWindow.webContents.executeJavaScript(`
+            document.querySelector('[data-view="library"]').click();
+          `);
+          await new Promise((resolve) => setTimeout(resolve, 700));
+          if (process.env.SECOND_BRAIN_SCREENSHOT_BRAIN) {
+            await mainWindow.webContents.executeJavaScript(`
+              const select = document.querySelector('#brain-filter');
+              select.value = ${JSON.stringify(process.env.SECOND_BRAIN_SCREENSHOT_BRAIN)};
+              select.dispatchEvent(new Event('change'));
+            `);
+            await new Promise((resolve) => setTimeout(resolve, 700));
+          }
+          if (process.env.SECOND_BRAIN_SCREENSHOT_DEBUG) {
+            const widths = await mainWindow.webContents.executeJavaScript(`
+              (() => {
+                const width = (el) => { const r = el?.getBoundingClientRect(); return r ? Math.round(r.width) : 'missing'; };
+                const view = document.querySelector('.view.active');
+                return {
+                  view: width(view),
+                  layout: width(document.querySelector('.library-layout')),
+                  content: width(document.querySelector('.library-content')),
+                  results: width(document.querySelector('.library-results')),
+                  grid: width(document.querySelector('.brain-browser-grid')),
+                  item: width(document.querySelector('.brain-browser-item')),
+                  gridCols: getComputedStyle(document.querySelector('.brain-browser-grid')).gridTemplateColumns,
+                  layoutCols: getComputedStyle(document.querySelector('.library-layout')).gridTemplateColumns,
+                  layoutDisplay: getComputedStyle(document.querySelector('.library-layout')).display,
+                  viewDisplay: getComputedStyle(document.querySelector('.view.active')).display,
+                  categoryNav: width(document.querySelector('.category-nav')),
+                  categoryDisplay: getComputedStyle(document.querySelector('.category-nav')).display,
+                  contentGridColumn: getComputedStyle(document.querySelector('.library-content')).gridColumn,
+                  resultsDisplay: getComputedStyle(document.querySelector('.library-results')).display,
+                  layoutChildren: [...document.querySelector('.library-layout').children].map((el) => ({ tag: el.tagName, cls: el.className, w: Math.round(el.getBoundingClientRect().width) })),
+                  bodyWidth: document.body.clientWidth,
+                  mainWidth: width(document.querySelector('.main'))
+                };
+              })()
+            `);
+            fs.writeFileSync(process.env.SECOND_BRAIN_SCREENSHOT_DEBUG, JSON.stringify(widths, null, 2), "utf8");
+          }
+        } else if (["reader", "reader-annotation"].includes(process.env.SECOND_BRAIN_SCREENSHOT_VIEW)) {
           await mainWindow.webContents.executeJavaScript(`
             document.querySelector('[data-view="library"]').click();
           `);
@@ -169,6 +227,31 @@ function createWindow() {
             document.querySelector('.browse-row')?.click();
           `);
           await new Promise((resolve) => setTimeout(resolve, 700));
+          if (process.env.SECOND_BRAIN_SCREENSHOT_SCROLL === "reader-bottom") {
+            await mainWindow.webContents.executeJavaScript(`
+              const scroll = document.querySelector('.reader-scroll');
+              scroll?.scrollTo({ top: scroll.scrollHeight, behavior: 'instant' });
+            `);
+            await new Promise((resolve) => setTimeout(resolve, 400));
+          }
+          if (process.env.SECOND_BRAIN_SCREENSHOT_VIEW === "reader-annotation") {
+            await mainWindow.webContents.executeJavaScript(`
+              const paragraph = document.querySelector('.reader-content p');
+              if (paragraph) {
+                const range = document.createRange();
+                range.selectNodeContents(paragraph);
+                const sel = window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(range);
+                document.querySelector('.reader-content').dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+              }
+            `);
+            await new Promise((resolve) => setTimeout(resolve, 300));
+            await mainWindow.webContents.executeJavaScript(`
+              document.querySelector('#selection-bubble')?.click();
+            `);
+            await new Promise((resolve) => setTimeout(resolve, 400));
+          }
         }
         const image = await mainWindow.webContents.capturePage();
         fs.writeFileSync(process.env.SECOND_BRAIN_SCREENSHOT, image.toPNG());

@@ -145,6 +145,7 @@ kbd { padding: 2px 6px; border: 1px solid var(--line); border-radius: 4px; backg
 .library-toolbar input, .library-toolbar select { height: 42px; padding: 0 13px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--surface); color: var(--ink); outline: 0; }
 .library-toolbar input:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgb(22 132 91 / .09); }
 .library-layout { display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 14px; align-items: start; }
+.library-layout:has(.category-nav.hidden) { grid-template-columns: minmax(0, 1fr); }
 .library-content { min-width: 0; }
 .category-nav { position: sticky; top: 76px; display: grid; padding: 6px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
 .category-nav.hidden { display: none; }
@@ -404,4 +405,192 @@ kbd { padding: 2px 6px; border: 1px solid var(--line); border-radius: 4px; backg
   .reader-meta, .reader-content, .connections { padding-left: 20px; padding-right: 20px; }
   .setup-card { padding: 32px 20px; }
   .setup-actions { flex-direction: column; }
+}
+
+/* ── 金句横幅 ── */
+.quote-banner {
+  position: relative;
+  margin-bottom: 22px;
+  padding: 34px 38px 26px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background:
+    radial-gradient(1100px 240px at 12% 0%, color-mix(in srgb, var(--brain-color, var(--green)) 9%, transparent), transparent 60%),
+    var(--surface);
+  overflow: hidden;
+}
+.quote-banner::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--brain-color, var(--green));
+}
+.quote-kicker {
+  display: block;
+  color: var(--brain-color, var(--green));
+  font: 700 10px/1.2 ui-monospace, monospace;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.quote-text {
+  margin: 18px 0 14px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: 550 27px/1.55 Georgia, "Microsoft YaHei", serif;
+  letter-spacing: .01em;
+  text-align: center;
+}
+.quote-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+.quote-source {
+  color: var(--muted);
+  font-size: 12px;
+}
+.quote-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.quote-shuffle {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 11px;
+}
+.quote-shuffle:hover { border-color: var(--line-strong); background: var(--surface-2); color: var(--ink); }
+.quote-open {
+  min-height: 32px;
+  padding: 0 14px;
+  border: 1px solid var(--brain-color, var(--green));
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--brain-color, var(--green)) 12%, var(--surface));
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 650;
+}
+.quote-open:hover { background: color-mix(in srgb, var(--brain-color, var(--green)) 22%, var(--surface)); }
+
+/* ── 阅读想法：选中批注浮层 ── */
+.selection-bubble {
+  position: fixed;
+  z-index: 90;
+  min-height: 30px;
+  padding: 0 13px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--sidebar);
+  color: #fff;
+  font-size: 11px;
+  box-shadow: 0 6px 18px rgb(12 18 15 / .25);
+}
+.selection-bubble:hover { background: #2e3934; }
+
+/* ── 阅读想法：批注对话框 ── */
+#annotation-dialog { z-index: 85; }
+.annotation-card {
+  width: min(520px, calc(100vw - 30px));
+  margin-top: 4vh;
+  border: 1px solid #aeb7b1;
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: 0 24px 70px rgb(12 18 15 / .28);
+  overflow: hidden;
+  transform: translateY(-8px);
+  transition: transform .18s;
+}
+#annotation-dialog.open .annotation-card { transform: none; }
+.annotation-card > header {
+  min-height: 66px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 18px;
+  border-bottom: 1px solid var(--line);
+}
+.annotation-card h2 { margin: 3px 0 0; font-size: 17px; }
+.annotation-selection {
+  margin: 0;
+  padding: 13px 18px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--muted);
+  font: 12px/1.7 Georgia, "Microsoft YaHei", serif;
+  max-height: 96px;
+  overflow-y: auto;
+}
+.annotation-selection::before { content: "“"; color: var(--green); font-size: 15px; }
+.annotation-selection::after { content: "”"; color: var(--green); font-size: 15px; }
+.annotation-card textarea {
+  display: block;
+  width: calc(100% - 36px);
+  margin: 14px 18px;
+  padding: 11px 13px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  font: 13px/1.7 inherit;
+  resize: vertical;
+  outline: 0;
+}
+.annotation-card textarea:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgb(22 132 91 / .09); }
+.annotation-card > footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 9px;
+  padding: 0 18px 16px;
+}
+.annotation-card > footer .quiet-label { margin-right: auto; }
+
+/* ── 阅读想法：页尾感想框 ── */
+.reader-note {
+  margin: 0 34px 44px;
+  padding: 15px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 8px;
+  background: #fafbf9;
+}
+.reader-note textarea {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  font: 13px/1.7 inherit;
+  resize: vertical;
+  outline: 0;
+}
+.reader-note textarea:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgb(22 132 91 / .09); }
+.reader-note-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+}
+.reader-note-bar .primary-button { min-height: 32px; padding: 0 15px; font-size: 11px; }
+.reader-note-bar .primary-button:disabled { background: var(--line-strong); border-color: var(--line-strong); cursor: default; }
+
+@media (max-width: 620px) {
+  .quote-banner { padding: 26px 20px 20px; }
+  .quote-text { font-size: 21px; line-height: 1.5; }
+  .quote-footer { flex-direction: column; align-items: flex-start; }
+  .reader-note { margin-left: 20px; margin-right: 20px; }
 }

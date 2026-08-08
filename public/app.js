@@ -6,7 +6,10 @@ const state = {
   libraryBrain: "",
   libraryCategory: "",
   libraryPages: [],
-  vault: null
+  vault: null,
+  currentPageId: null,
+  quoteIndex: 0,
+  selectionText: ""
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -110,6 +113,7 @@ async function getJson(url, options) {
     if (target.pathname === "/api/page") return window.secondBrain.page(target.searchParams.get("id") || "");
     if (target.pathname === "/api/pages") return window.secondBrain.pages(target.searchParams.get("brain") || "");
     if (target.pathname === "/api/issues") return window.secondBrain.issues();
+    if (target.pathname === "/api/note" && options?.method === "POST") return window.secondBrain.addNote(JSON.parse(options.body));
     if (target.pathname === "/api/rebuild" && options?.method === "POST") return window.secondBrain.rebuild();
     throw new Error(`Unsupported desktop request: ${target.pathname}`);
   }
@@ -142,6 +146,22 @@ function metric(label, value, tone, note) {
   </div>`;
 }
 
+function renderQuote() {
+  const quotes = state.dashboard.quotes || [];
+  if (!quotes.length) {
+    $("#quote-banner").hidden = true;
+    return;
+  }
+  $("#quote-banner").hidden = false;
+  const quote = quotes[state.quoteIndex % quotes.length];
+  const banner = $("#quote-banner");
+  banner.style.setProperty("--brain-color", quote.color);
+  $("#quote-kicker").textContent = `${quote.brainName} · 金句`;
+  $("#quote-text").textContent = `“${quote.quote}”`;
+  $("#quote-source").textContent = `—— 《${quote.title}》`;
+  $("#quote-open").dataset.pageId = encodeURIComponent(quote.id);
+}
+
 function renderDashboard() {
   const data = state.dashboard;
   const summary = data.summary;
@@ -149,6 +169,7 @@ function renderDashboard() {
     weekday: "long", year: "numeric", month: "long", day: "numeric"
   }).format(new Date());
   $("#generated-at").textContent = `更新于 ${formatDate(summary.generatedAt, true)}`;
+  renderQuote();
   $("#metrics").innerHTML = [
     metric("待处理捕获", summary.captures, summary.captures ? "amber" : "green", "来自收件箱"),
     metric("待归档", summary.pendingRoutes, summary.pendingRoutes ? "cyan" : "green", "来自信息源"),
@@ -348,6 +369,9 @@ function resultCard(page) {
 
 async function openPage(id) {
   const page = await getJson(`/api/page?id=${encodeURIComponent(id)}`);
+  state.currentPageId = page.id;
+  $("#reader-note-input").value = "";
+  $("#reader-note-save").disabled = true;
   $("#reader-dot").style.setProperty("--brain-color", page.color);
   $("#reader-brain").textContent = page.brainName;
   $("#reader-meta").innerHTML = `
@@ -367,6 +391,70 @@ async function openPage(id) {
 function closeReader() {
   $("#reader").classList.remove("open");
   $("#reader-backdrop").classList.remove("open");
+}
+
+async function saveNote(text, selection = "") {
+  const pageId = state.currentPageId;
+  if (!pageId) {
+    showToast("请先打开一篇笔记");
+    return false;
+  }
+  try {
+    const result = await getJson("/api/note", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pageId, text, selection })
+    });
+    if (result.error) {
+      showToast(`保存失败：${result.error}`);
+      return false;
+    }
+    showToast("已存入收件箱");
+    return true;
+  } catch (error) {
+    console.error(error);
+    showToast("保存失败，请稍后重试");
+    return false;
+  }
+}
+
+function showSelectionBubble() {
+  const selection = window.getSelection();
+  const text = selection?.toString().trim() || "";
+  const bubble = $("#selection-bubble");
+  if (text.length < 10 || !state.currentPageId) {
+    bubble.hidden = true;
+    return;
+  }
+  try {
+    const rect = selection.getRangeAt(0).getBoundingClientRect();
+    const bubbleWidth = 72;
+    let left = rect.left + rect.width / 2 - bubbleWidth / 2;
+    left = Math.max(8, Math.min(left, window.innerWidth - bubbleWidth - 8));
+    const top = Math.max(8, rect.top - 42);
+    bubble.style.left = `${left}px`;
+    bubble.style.top = `${top}px`;
+    bubble.hidden = false;
+  } catch {
+    bubble.hidden = true;
+  }
+}
+
+function openAnnotationDialog() {
+  const selection = window.getSelection();
+  const fresh = selection?.toString().trim();
+  if (fresh) state.selectionText = fresh;
+  state.selectionText = state.selectionText.replace(/\s+/g, " ").slice(0, 200);
+  if (!state.selectionText) return;
+  $("#selection-bubble").hidden = true;
+  $("#annotation-selection").textContent = state.selectionText;
+  $("#annotation-text").value = "";
+  $("#annotation-dialog").classList.add("open");
+  setTimeout(() => $("#annotation-text").focus(), 20);
+}
+
+function closeAnnotationDialog() {
+  $("#annotation-dialog").classList.remove("open");
 }
 
 function openSearch() {
@@ -428,6 +516,44 @@ function bindEvents() {
   $("#menu-button").addEventListener("click", () => document.body.classList.toggle("sidebar-open"));
   $("#reader-close").addEventListener("click", closeReader);
   $("#reader-backdrop").addEventListener("click", closeReader);
+  $("#quote-shuffle").addEventListener("click", () => {
+    state.quoteIndex = (state.quoteIndex + 1) % (state.dashboard.quotes?.length || 1);
+    renderQuote();
+  });
+  $("#quote-open").addEventListener("click", () => {
+    const id = $("#quote-open").dataset.pageId;
+    if (id) openPage(decodeURIComponent(id));
+  });
+  $("#reader-content").addEventListener("mouseup", showSelectionBubble);
+  $("#reader-content").addEventListener("keyup", showSelectionBubble);
+  document.addEventListener("mousedown", (event) => {
+    if (event.target.closest("#selection-bubble") || event.target.closest("#annotation-dialog")) return;
+    $("#selection-bubble").hidden = true;
+  });
+  $("#selection-bubble").addEventListener("click", openAnnotationDialog);
+  $("#annotation-save").addEventListener("click", async () => {
+    const note = $("#annotation-text").value.trim();
+    if (!note) return;
+    if (await saveNote(note, state.selectionText)) {
+      closeAnnotationDialog();
+      $("#selection-bubble").hidden = true;
+      window.getSelection()?.removeAllRanges();
+    }
+  });
+  $("#annotation-cancel").addEventListener("click", closeAnnotationDialog);
+  $("#annotation-close").addEventListener("click", closeAnnotationDialog);
+  $("#annotation-dialog").addEventListener("click", (event) => { if (event.target === $("#annotation-dialog")) closeAnnotationDialog(); });
+  $("#reader-note-input").addEventListener("input", () => {
+    $("#reader-note-save").disabled = !$("#reader-note-input").value.trim();
+  });
+  $("#reader-note-save").addEventListener("click", async () => {
+    const note = $("#reader-note-input").value.trim();
+    if (!note) return;
+    if (await saveNote(note)) {
+      $("#reader-note-input").value = "";
+      $("#reader-note-save").disabled = true;
+    }
+  });
   $("#search-dialog").addEventListener("click", (event) => { if (event.target === $("#search-dialog")) closeSearch(); });
   $("#open-resurfacing").addEventListener("click", () => state.dashboard.resurfacing && openPage(state.dashboard.resurfacing.id));
   $("#library-search").addEventListener("input", () => {
@@ -478,6 +604,8 @@ function bindEvents() {
       closeSearch();
       closeReader();
       closeSettings();
+      closeAnnotationDialog();
+      $("#selection-bubble").hidden = true;
     }
   });
 }
