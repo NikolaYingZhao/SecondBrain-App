@@ -3,18 +3,23 @@
 SecondBrain 是本地优先的个人知识桌面应用。安装后像普通软件一样从桌面或开始菜单打开，
 应用会自动找到知识内容，并在内容变化后自动更新。日常使用不需要终端、npm、端口或手动扫描。
 
+本仓库只包含**桌面应用代码**；知识数据存放在独立的私有仓库中，不随软件发布。
+
 ## 普通使用
 
-运行 `release/SecondBrain-Setup-1.0.0.exe` 完成安装。安装程序会创建开始菜单入口，
-并可创建桌面快捷方式。以后双击 `SecondBrain` 即可。
+从 [GitHub Releases](https://github.com/NikolaYingZhao/SecondBrain-App/releases) 下载
+最新的 `SecondBrain-Setup-<version>.exe` 完成安装。安装程序会创建开始菜单入口，并可创建
+桌面快捷方式。以后双击 `SecondBrain` 即可。
+
+**自动更新**：安装版启动后会自动检查 GitHub Releases，发现新版本即静默下载；下载完成后
+在"设置 → 检查更新"中点击"重启安装"完成升级。绿色解压版（win-unpacked）不支持自动更新。
 
 通常应用会自动找到 `Documents/SecondBrain` 或与程序相邻的知识库。只有无法自动识别时，
-才会显示首次使用页面，让用户选择一次资料位置。路径、刷新等低频操作统一收在“设置”中。
+才会显示首次使用页面，让用户选择一次资料位置。路径、刷新等低频操作统一收在"设置"中。
 
 ## 开发者运行
 
 ```powershell
-cd app
 npm.cmd install
 npm.cmd start
 ```
@@ -35,7 +40,7 @@ npm.cmd start
 npm.cmd run pack
 ```
 
-生成 Windows 安装程序：
+生成 Windows 安装程序（不上传）：
 
 ```powershell
 npm.cmd run dist
@@ -43,23 +48,19 @@ npm.cmd run dist
 
 产物位于 `release/`。
 
-## 单一数据源
+## 发布新版本
 
-应用架构分支只负责代码，不拥有知识数据：
+1. 更新 `package.json` 的 `version`（自动更新只在版本号升高时触发）；
+2. 提交并推送；
+3. 打 tag（格式 `v1.1.0`）并推送：
 
-```text
-同一个 brains/ Markdown Vault
-        ↑             ↑
-  知识维护流程     SecondBrain 桌面版
+```powershell
+git tag v1.1.0
+git push origin v1.1.0
 ```
 
-`npm test` 会运行数据分支保护。只要当前分支不是 `master`，以下情况会使测试失败：
-
-- `master...HEAD` 中存在已提交的 `brains/**` 差异；
-- 暂存区中存在准备提交到架构分支的 `brains/**` 文件。
-
-工作区中尚未暂存的笔记不会被改动。知识数据在 `master` 形成唯一历史，桌面应用只读取
-同一份物理知识库。
+GitHub Actions 会在 windows-latest 上构建安装程序并发布到 Releases（含 `latest.yml`，
+electron-updater 依赖它检查更新）。
 
 ## 可选网页调试
 
@@ -74,15 +75,14 @@ npm.cmd run web
 ## 目录
 
 ```text
-app/
 ├── config/brains.json       # 脑区注册表
 ├── src/desktop.mjs          # Electron 主进程
+├── src/updater.mjs          # 自动更新（electron-updater 封装）
 ├── src/preload.cjs          # 安全 IPC 桥接
 ├── src/service.mjs          # 桌面数据服务
 ├── src/markdown.mjs         # Markdown 与 wikilink 渲染
 ├── src/wiki.mjs             # 索引、链接解析、审计、搜索、金句池
 ├── src/server.mjs           # 可选网页调试服务
-├── scripts/                 # 分支数据保护
 ├── public/                  # 桌面界面
-└── tests/                   # 索引器、外部 Vault 和渲染测试
+└── tests/                   # 索引器、外部 Vault、渲染与更新测试
 ```
