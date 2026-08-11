@@ -33,7 +33,8 @@
     "publish": {
       "provider": "github",
       "owner": "NikolaYingZhao",
-      "repo": "SecondBrain-App"
+      "repo": "SecondBrain-App",
+      "releaseType": "release"
     },
     "directories": {
       "output": "release"
