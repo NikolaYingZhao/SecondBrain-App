@@ -9,7 +9,9 @@ const state = {
   vault: null,
   currentPageId: null,
   quoteIndex: 0,
-  selectionText: ""
+  selectionText: "",
+  appVersion: "",
+  updateStatus: { status: "idle", info: null }
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -66,7 +68,50 @@ function hideSetup() {
 function openSettings() {
   if (!state.dashboard) return;
   $("#settings-summary").textContent = `${state.dashboard.summary.pages} 篇内容已连接，日常会自动更新`;
+  $("#update-detail").textContent = `当前版本 v${state.appVersion || "?"}`;
+  renderUpdateStatus(state.updateStatus);
   $("#settings-dialog").classList.add("open");
+}
+
+function renderUpdateStatus(status) {
+  if (!status) return;
+  state.updateStatus = status;
+  const detail = $("#update-detail");
+  const action = $("#update-action");
+  const row = $("#update-row");
+  if (!detail || !action || !row) return;
+  row.classList.remove("ready");
+  switch (status.status) {
+    case "checking":
+      detail.textContent = "正在检查更新…";
+      action.textContent = "…";
+      break;
+    case "available":
+      detail.textContent = `发现新版本 v${status.info?.version || "?"}，正在下载…`;
+      action.textContent = "…";
+      break;
+    case "downloading":
+      detail.textContent = `正在下载 ${status.info?.percent ?? 0}%`;
+      action.textContent = "…";
+      break;
+    case "downloaded":
+      detail.textContent = `新版本 v${status.info?.version || "?"} 已就绪`;
+      action.textContent = "重启安装";
+      row.classList.add("ready");
+      showToast("新版本已下载，请在设置中重启安装");
+      break;
+    case "not-available":
+      detail.textContent = "已是最新版本";
+      action.textContent = "检查";
+      break;
+    case "error":
+      detail.textContent = `检查失败：${status.info?.message || "网络异常"}`;
+      action.textContent = "重试";
+      break;
+    default:
+      detail.textContent = `当前版本 v${state.appVersion || "?"}`;
+      action.textContent = "检查";
+  }
 }
 
 function closeSettings() {
@@ -569,6 +614,21 @@ function bindEvents() {
     state.searchTimer = setTimeout(commandSearch, 140);
   });
   $("#settings-button").addEventListener("click", openSettings);
+  $("#update-row").addEventListener("click", async () => {
+    if (!window.secondBrain) return;
+    if (state.updateStatus.status === "downloaded") {
+      await window.secondBrain.quitAndInstall();
+      return;
+    }
+    if (state.updateStatus.status === "checking" || state.updateStatus.status === "downloading" || state.updateStatus.status === "available") return;
+    renderUpdateStatus({ status: "checking", info: null });
+    try {
+      await window.secondBrain.checkForUpdate();
+    } catch (error) {
+      console.error(error);
+      renderUpdateStatus({ status: "error", info: { message: error?.message || "网络异常" } });
+    }
+  });
   $("#settings-close").addEventListener("click", closeSettings);
   $("#settings-dialog").addEventListener("click", (event) => {
     if (event.target === $("#settings-dialog")) closeSettings();
@@ -619,6 +679,9 @@ async function init() {
       renderApp(dashboard);
       showToast("内容已自动更新");
     });
+    state.appVersion = (await window.secondBrain.appVersion()) || "";
+    state.updateStatus = (await window.secondBrain.updateStatus()) || state.updateStatus;
+    window.secondBrain.onUpdateStatus(renderUpdateStatus);
     if (!vault.configured) {
       showSetup();
       return;

@@ -12,6 +12,15 @@ contextBridge.exposeInMainWorld("secondBrain", {
   chooseVault: () => ipcRenderer.invoke("vault:choose"),
   autoDetectVault: () => ipcRenderer.invoke("vault:auto-detect"),
   revealVault: () => ipcRenderer.invoke("vault:reveal"),
+  appVersion: () => ipcRenderer.invoke("app:version"),
+  updateStatus: () => ipcRenderer.invoke("app:update-status"),
+  checkForUpdate: () => ipcRenderer.invoke("app:check-update"),
+  quitAndInstall: () => ipcRenderer.invoke("app:quit-install"),
+  onUpdateStatus: (callback) => {
+    const listener = (_event, status) => callback(status);
+    ipcRenderer.on("app:update-status", listener);
+    return () => ipcRenderer.removeListener("app:update-status", listener);
+  },
   onUpdated: (callback) => {
     const listener = (_event, dashboard) => callback(dashboard);
     ipcRenderer.on("knowledge:updated", listener);

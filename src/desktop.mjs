@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { app, BrowserWindow, dialog, ipcMain, shell } from "electron";
 import { KnowledgeService } from "./service.mjs";
 import { findVaultPath } from "./vault-discovery.mjs";
+import { UpdateManager } from "./updater.mjs";
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const v2Root = path.resolve(currentDir, "..");
@@ -13,6 +14,7 @@ let settingsPath;
 let service;
 let vaultWatcher;
 let refreshTimer;
+const updater = new UpdateManager({ isPackaged: app.isPackaged });
 
 const hasSingleInstanceLock = app.requestSingleInstanceLock();
 if (!hasSingleInstanceLock) app.quit();
@@ -119,6 +121,10 @@ function registerIpc() {
   ipcMain.handle("vault:choose", chooseVault);
   ipcMain.handle("vault:auto-detect", autoDetectVault);
   ipcMain.handle("vault:reveal", revealVault);
+  ipcMain.handle("app:version", () => app.getVersion());
+  ipcMain.handle("app:update-status", () => updater.snapshot());
+  ipcMain.handle("app:check-update", () => updater.check());
+  ipcMain.handle("app:quit-install", () => updater.quitAndInstall());
 }
 
 function createWindow() {
@@ -277,6 +283,14 @@ if (hasSingleInstanceLock) app.whenReady().then(async () => {
   if (service.vaultPath) startVaultWatcher();
   registerIpc();
   createWindow();
+
+  updater.onStatus((status) => {
+    mainWindow?.webContents.send("app:update-status", status);
+  });
+  await updater.init();
+  setTimeout(() => {
+    updater.check().catch((error) => console.error("Update check failed:", error));
+  }, 8000);
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
