@@ -1,7 +1,11 @@
 let autoUpdaterPromise;
 
 function getAutoUpdater() {
-  autoUpdaterPromise ??= import("electron-updater").then((module) => module.autoUpdater);
+  autoUpdaterPromise ??= import("electron-updater").then((module) => {
+    const resolved = module.autoUpdater ?? module.default?.autoUpdater;
+    if (!resolved) throw new Error("electron-updater failed to initialize");
+    return resolved;
+  });
   return autoUpdaterPromise;
 }
 

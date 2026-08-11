@@ -1,6 +1,6 @@
 {
   "name": "secondbrain",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "A local-first desktop home for a personal knowledge base, with auto-update.",
   "author": "Nikola Ying Zhao",
   "private": true,
